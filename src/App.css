@@ -1,0 +1,81 @@
+.App {
+    text-align: center;
+    background-color: #fdf5e6;
+}
+html{
+    background-color:#eedfcc;
+}
+fieldset{
+    margin-bottom: 20px;
+}
+.App-logo {
+  animation: App-logo-spin infinite 30s linear;
+  height: 80px;
+}
+td input{
+    background-color:#fffaf0;
+}
+.App-header {
+  background-color: #222;
+  height: 150px;
+  padding: 20px;
+  color: white;
+  text-align: center;
+}
+
+.App-intro {
+  font-size: large;
+}
+textarea:read-only{
+    background-color:#faebd7;
+}
+@keyframes App-logo-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+legend{
+    text-align: left;
+}
+td{text-align: left;}
+svg{
+    border:5px solid #000000;
+}
+.game-viewer text{
+    padding: 5px;
+}
+.game-viewer label{
+    padding: 5px;
+}
+.game-viewer fieldset{
+    margin-bottom: 0px;
+}
+#game-viewer-id{
+    //max-width:616px;
+}
+input{
+    margin-right:5px;
+}
+.model-select label{
+    margin-left:5px;
+}
+.model-select output{
+    margin-left:5px;
+}
+#move-analyzer-id{
+    padding-left:10px;
+    float:right;
+}
+.Select-control{
+    background-color:#fffaf0;
+}
+svg text {
+    cursor: default;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+svg text::selection {
+    background: none;
+}
