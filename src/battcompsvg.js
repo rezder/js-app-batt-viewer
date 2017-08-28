@@ -5,6 +5,7 @@ import PropTypes from 'prop-types';
 import * as dPos from './dpos.js';
 import * as dCard from './dcard.js';
 import * as mv from './moves.js';
+import * as dMoveType from './dmovetype.js';
 import {
     CardGroup,
     CardDeck,
@@ -13,6 +14,9 @@ import {
     CLICK_Cards,
     CLICK_Troops
 } from './battcardsvg.js';
+import {
+    Button
+} from './compsvg.js'
 class Dish extends Component {
     static propTypes = {
         cardixs: PropTypes.array.isRequired,
@@ -80,7 +84,7 @@ class Flag extends Component {
         let troops = 4;
         let tacs = 2;
         let step = 2 * design.groupStroke + design.space + design.cardHeight +
-              (troops - 1) * design.groupVStep;
+             (troops - 1) * design.groupVStep;
         return (
             <g>
                 <CardGroup cardixs={sort.troops}
@@ -303,14 +307,13 @@ export class Player extends Component {
             targetPoss: targetPoss,
             selectType: selectType
         };
-    s
+    }
 }
-
 export class Deck extends Component {
     static propTypes = {
-        pos: PropTypes.number.isRequired,// Game position.
+        pos: PropTypes.number.isRequired, // Game position.
         deck: PropTypes.array.isRequired, // Cards in deck
-        noHidden:PropTypes.number.isRequired,//No.hidden
+        noHidden: PropTypes.number.isRequired, //No.hidden
         height: PropTypes.number.isRequired,
         width: PropTypes.number.isRequired,
         stroke: PropTypes.number.isRequired,
@@ -319,7 +322,7 @@ export class Deck extends Component {
     render() {
         let pos = this.props.pos;
         let deck = this.props.deck;
-        let noHidden =this.props.noHidden;
+        let noHidden = this.props.noHidden;
         let handler = this.props.handler;
         let height = this.props.height;
         let width = this.props.width;
@@ -328,7 +331,7 @@ export class Deck extends Component {
         if (pos === dPos.card.DeckTroop) {
             cardix = dCard.BACKTroop;
         }
-        let noCards=deck.length -noHidden;
+        let noCards = deck.length - noHidden;
         return (
             <g>
                 <CardDeck cardix={cardix}
@@ -345,8 +348,8 @@ export class Deck extends Component {
 }
 
 export class Name extends Component {
-    static propTypes={
-        name:PropTypes.string.isRequired
+    static propTypes = {
+        name: PropTypes.string.isRequired
     }
 
     render() {
@@ -370,13 +373,16 @@ export class Cone extends Component {
         super(props);
         this.handleClick = this.handleClick.bind(this);
     }
-    static propTypes={
+    static propTypes = {
+        ix: PropTypes.number.isRequired, //cone ix
+        x: PropTypes.number.isRequired, //x coordinate
         handler: PropTypes.func,
-        pos: PropTypes.number.isRequired,// Game position.
+        pos: PropTypes.number.isRequired, // Game position.
         isMoveable: PropTypes.bool.isRequired,
-        size:PropTypes.number.isRequired,//diameter
-        diff:PropTypes.number.isRequired,
-        height:PropTypes.number.isRequired,// Board hight
+        size: PropTypes.number.isRequired, //diameter
+        diff: PropTypes.number.isRequired,
+        height: PropTypes.number.isRequired, // Board hight
+        topPlayer: PropTypes.number.isRequired, // The player on top
 
     }
     handleClick(e) {
@@ -390,6 +396,7 @@ export class Cone extends Component {
         }
     }
     render() {
+        let topPlayer = this.props.topPlayer
         let pos = this.props.pos;
         let isMoveable = this.props.isMoveable;
         let diameter = this.props.size;
@@ -406,13 +413,12 @@ export class Cone extends Component {
             styleLine.stroke = "0f0000";
             styleLine.cursor = "pointer";
         }
-
         let y = height / 2;
         if (pos !== dPos.cone.None) {
-            if (pos !== dPos.cone.Player[0]) {
-                y = y + diff;
-            } else {
+            if (pos === dPos.cone.Player[topPlayer]) {
                 y = y - diff;
+            } else {
+                y = y + diff;
             }
         }
         let circle = null;
@@ -438,4 +444,86 @@ export class Cone extends Component {
         }
         return circle;
     }
+}
+export class ButtonPanel extends Component {
+    static propTypes = {
+        handler: PropTypes.func,
+        isWinner: PropTypes.bool.isRequired,
+        isGveUp: PropTypes.bool.isRequired,
+        isViewPlayer: PropTypes.bool.isRequired,
+        viewPlayer: PropTypes.number.isRequired,
+        moves: PropTypes.arrayOf(PropTypes.object)
+    }
+    render() {
+        let handler = this.props.handler
+        let isWinner = this.props.isWinner
+        let isGiveUp = this.props.isGiveUp
+        let isViewPlayer = this.props.isViewPlayer
+        let moves = this.props.moves
+        let viewPlayer = this.props.viewPlayer
+        if (!handler || isWinner || isGiveUp || !isViewPlayer) {
+          return (<g />);
+        }else {
+            let isClaimDis = true
+            let isPassDis = true
+            let isGiveUpDis = true
+            let isStopDis = false
+            if (moves) {
+                let lastMove = moves[moves.length - 1]
+                if (lastMove.Mover === viewPlayer) {
+                    isGiveUpDis = false
+                    if (lastMove.MoveType === dMoveType.Hand && !lastMove.Moves) {
+                        isPassDis = false
+                    }
+                    if (lastMove.MoveType === dMoveType.Cone) {
+                        isClaimDis = false
+                    }
+                }
+            }
+            let space=5
+            let letterWidth=7.5
+            let colWidth=letterWidth*6+space
+            let rowHight=20+space
+            return (
+                <g>
+                    <g transform={translate(0,0)}>
+                        <Button
+                            text="Claim"
+                            disabled={isClaimDis}
+                            width={5*letterWidth}
+                            handler={handler}
+                        />
+                    </g>
+                    <g transform={translate(colWidth,0)}>
+                        <Button
+                            text="Pass"
+                            disabled={isPassDis}
+                            width={4*letterWidth}
+                            handler={handler}
+                        />
+                    </g>
+                    <g transform={translate(0,rowHight)}>
+                        <Button
+                            text="GiveUp"
+                            disabled={isGiveUpDis}
+                            width={6*letterWidth}
+                            handler={handler}
+                        />
+                    </g>
+                    <g transform={translate(colWidth,rowHight)}>
+                        <Button
+                            text="Stop"
+                            disabled={isStopDis}
+                            width={4*letterWidth}
+                            handler={handler}
+                        />
+                    </g>
+                </g>
+
+            );
+        }
+    }
+}
+function translate(x,y){
+    return "translate("+x+","+y+")"
 }

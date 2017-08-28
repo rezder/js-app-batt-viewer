@@ -1,6 +1,7 @@
 import React, {
     Component
 } from 'react';
+import PropTypes from 'prop-types';
 
 export class MiddleLine extends Component {
     render() {
@@ -10,16 +11,16 @@ export class MiddleLine extends Component {
             strokeDasharray: [4, 4]
         };
         return (
-                <path id="middelPath"
-            d={"m 0,"+this.props.height/2+" "+this.props.width+",0"}
-            style={styleLine}/>
+            <path id="middelPath"
+                  d={"m 0,"+this.props.height/2+" "+this.props.width+",0"}
+                  style={styleLine}/>
         );
     }
 }
 /**
    Pattern must be placed in defs where the can be reused.
    The back of the card use the pattern and if not include card would fail.
-*/
+ */
 export class Pattern extends Component {
     render() {
         const blackStyle = {
@@ -77,11 +78,11 @@ export class Shade extends Component {
         };
         if (on) {
             return (
-                    <rect
-                height={height}
-                width={width}
-                style={rectStyle}
-                    />
+                <rect
+                    height={height}
+                    width={width}
+                    style={rectStyle}
+                />
             );
         } else {
             return (<g/>);
@@ -150,5 +151,114 @@ export class Spinner extends Component {
         } else {
             return (<g/>);
         }
+    }
+}
+export class Button extends Component {
+    constructor(props) {
+        super(props);
+        this.clickHandler = this.clickHandler.bind(this);
+    }
+    static defaultProps = {
+        disabled: false,
+        height: 20,
+        fontSize: 10
+    };
+    static propTypes = {
+        text: PropTypes.string.isRequired,
+        disabled: PropTypes.bool.isRequired,
+        height: PropTypes.number.isRequired,
+        width: PropTypes.number.isRequired,
+        fontSize: PropTypes.number.isRequired,
+        handler: PropTypes.func
+    }
+    clickHandler(e) {
+        if (this.props.handler && !this.props.disabled) {
+            e.stopPropagation();
+            this.props.handler(this.props.text);
+        }
+    }
+    render() {
+        let height = this.props.height
+        let width = this.props.width
+        let fontSize = this.props.fontSize
+        let text = this.props.text
+        let disabled =this.props.disabled
+        let handler= this.props.handler
+        const rectStyle = {
+            stroke: "none"
+        }
+        const rectGlowStyle = {
+            stroke: "none",
+            fill: "url(#radialGradientButton)"
+        }
+        if (handler){
+            rectGlowStyle.cursor = "pointer";
+        }
+        let opacity=1
+        if (disabled){
+            opacity=0.5
+        }
+        const textStyle = {
+            fontSize: fontSize + "px",
+            textAnchor: "middle",
+            fontWeight:"bold",
+            fillOpacity:opacity
+        }
+        const stopStyle1 = {
+            stopColor: "#000000",
+            stopOpacity: "0"
+        }
+        const stopStyle2 = {
+            stopColor: "#000000",
+            stopOpacity: "0.8"
+        }
+        return (
+            <g>
+                <defs
+                    id="defGradient">
+                    <radialGradient
+                        cx="0.5"
+                        cy="0.5"
+                        r="2"
+                        fx="0.5"
+                        fy="0.25"
+                        gradientTransform={"scale(1,"+height/width+")"}
+                        id="radialGradientButton"
+                        gradientUnits="objectBoundingBox"
+                    >
+                        <stop
+                            id="stopButton1"
+                            style={stopStyle1}
+                            offset="0" />
+                        <stop
+                            id="stopButton2"
+                            style={stopStyle2}
+                            offset="1" />
+
+                    </radialGradient>
+                </defs>
+                <rect
+                    width={width}
+                    height={height}
+                    ry={height/4}
+                    className="svg-button-background"
+                    style={rectStyle} />
+                <rect
+                    width={width}
+                    height={height}
+                    ry={height/4}
+                    style={rectGlowStyle} />
+                <text
+                    x={width/2}
+                    y={(height+fontSize/2)/2}
+                    className="svg-button-foreground"
+                    style={textStyle}
+                    pointerEvents="none">
+                    {text}
+                </text>
+
+
+            </g>
+        )
     }
 }

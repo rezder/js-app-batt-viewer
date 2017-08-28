@@ -25,22 +25,57 @@ export class GameSelect extends Component {
         handleGame: PropTypes.func,
         dbFile: PropTypes.string
     }
+    componentWillReceiveProps(nextProps) {
+        if (nextProps.dbFile !== this.props.dbFile) {
+            this.setState({
+                games: [],
+                selectedRow: -1
+            });
+        }
+    }
     handleLoad() {
-        //TODO load games remember last fest games[length]
-        let games = [{
-                Moves: [],
-                PlayerIDs: [1, 2],
-                TimeStamp: "2012-07-04T18:10:00.000+09:00"
-            },
-            {
-                Moves: [],
-                PlayerIDs: [1, 2],
-                TimeStamp: "2012-07-04T18:10:00.000+09:30"
+        let params = "file=" + this.props.dbFile+ "&no-games="+this.state.batchSize;
+        let games=this.state.games
+        if (games.length!==0){
+            let game=games[games.length-1]
+            params=params+"&player0id="+game.PlayerIDs[0]+"&player1id="+game.PlayerIDs[1]+"&ts="+encodeURIComponent(game.Time);
+        }
+        let http = new XMLHttpRequest();
+        let url = "games/";
+        http.open("POST", url, true);
+        http.setRequestHeader("Content-type",
+                              "application/x-www-form-urlencoded");
+        let gameSelector=this
+        http.onreadystatechange = function() {
+            if (http.readyState === 4 && http.status === 200) {
+                let games = JSON.parse(http.responseText);
+                console.log(["Games recieved: ",games])
+                let selectedRow=-1
+                gameSelector.setState({
+                    games: games,
+                    selectedRow: selectedRow
+                });
             }
-        ];
-        this.setState({
-            games: games
-        });
+        };
+        http.send(params);
+        console.log(["handleLoad Url: ",url,"Params: ",params])
+        //TODO remove test ex. games
+        /*
+           games = [{
+           Moves: [],
+           PlayerIDs: [1, 2],
+           TimeStamp: "2012-07-04T18:10:00.000+09:00"
+           },
+           {
+           Moves: [],
+           PlayerIDs: [1, 2],
+           TimeStamp: "2012-07-04T18:10:00.000+09:30"
+           }
+           ];
+           this.setState({
+           games: games
+           });
+         */
     }
     handleBatch(event) {
         this.setState({
@@ -105,7 +140,7 @@ export class GameSelect extends Component {
                     rowHeight={40}
                     headerHeight={40}
                     rowsCount={this.state.games.length}
-                    width={540}
+                    width={660}
                     height={400}
                     onRowClick={this.handleRow}
                 >
@@ -113,22 +148,22 @@ export class GameSelect extends Component {
                         header={<Cell>Player 1</Cell>}
                         cell={<PlayerCell data={this.state.games}
                                                player="0"
-                              />}
+                        />}
                         width={100}
                     />
                     <Column
                         header={<Cell>Player 2</Cell>}
                         cell={<PlayerCell data={this.state.games}
                                                player="1"
-                              />}
+                        />}
                         width={100}
                     />
                     <Column
                         header={<Cell>TimeStamp</Cell>}
                         cell={<TextCell data={this.state.games}
-                                             field="TimeStamp"
-                              />}
-                        width={300}
+                                             field="Time"
+                        />}
+                        width={400}
                     />
                     <Column
                         header={<Cell></Cell>}
@@ -150,7 +185,7 @@ class SelectCell extends React.Component {
         return (
             <Cell {...props}>
                 <input type="checkbox" checked={rowIndex===selectedRow}/>
-                </Cell>
+            </Cell>
         );
     }
 }

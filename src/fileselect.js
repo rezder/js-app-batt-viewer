@@ -21,82 +21,98 @@ export class FileSelect extends Component {
         preFix: PropTypes.string.isRequired,
         header: PropTypes.string.isRequired
     }
+    httpCallBack(options){
+        this.myOptions=options
+    }
     getOptions(input, callback) {//The search data
         let http = new XMLHttpRequest();
-        let url = "localhost:9021/dir/";
-        let path = this.props.preFix + input;
+        let url = "dir/";
+        let preFix=this.props.preFix
+        let path = preFix + input;
         path = stripFile(path);
         if (this.path !== path) {
             this.path = path;
-            //     let params = "dir=" + path + "&isdir=" + this.props.isDir +
-            //           "&suffix=" + this.props.suffix;
+            let params = "dir=" + path + "&isdir=" + this.props.isDir +
+                         "&suffix=" + this.props.suffix;
             http.open("POST", url, true);
             http.setRequestHeader("Content-type",
                                   "application/x-www-form-urlencoded");
-
+            let fileSelector=this
             http.onreadystatechange = function() {
                 if (http.readyState === 4 && http.status === 200) {
                     let fileInfos = JSON.parse(http.responseText);
+                    console.log(["getOptions Recieve object: ",fileInfos])
                     let options = [];
                     if (fileInfos) {
                         for (let fileInfo of fileInfos) {
                             let value = fileInfo.Name;
-                            if (fileInfo.isDir) {
-                                value = value = "}";
-                            } else {
-                                value = value = "{";
+                            if (fileInfo.IsDir) {
+                                value = value + "/";
                             }
+                            let label=value
+                            if (path.length>=preFix.length){
+                                label=path.slice(preFix.length)+"/"+value
+                            }
+                            value=path+"/"+value
                             options.push({
                                 value: value,
-                                label: fileInfo.Name
+                                label: label
                             });
                         }
                     }
+                    fileSelector.myOptions=options
                     callback(null, {
                         options: options,
                         complete: false
                     });
                 }
             };
-            // http.send(params);
-        }
-        setTimeout(function() {
+            http.send(params);
+            console.log(["getOptions Url: ",url,"Params: ",params])
+        }else{
             callback(null, {
-                options: [{
-                    value: 'File{',
-                    label: 'File'
-                },
-                          {
-                              value: 'dir}',
-                              label: 'dir'
-                          }
-                ],
-                // CAREFUL! Only set this to true when there are no more options,
-                // or more specific queries will not be sent to the server.
-                //Not use with cache false
-                complete: true
+                options: this.myOptions,
+                complete: false
             });
-        }, 500);
-
+        }
+        //TODO remove dir content example
+        /*setTimeout(function() {
+           callback(null, {
+           options: [{
+           value: 'File{',
+           label: 'File'
+           },
+           {
+           value: 'dir}',
+           label: 'dir'
+           }
+           ],
+           // CAREFUL! Only set this to true when there are no more options,
+           // or more specific queries will not be sent to the server.
+           //Not use with cache false
+           complete: true
+           });
+           }, 500);
+         */
     }
     onChange(vl) {
         if (vl) {
-            console.log(["File change new file: ", vl.value.slice(0, vl.value
-                                                                       .length - 1)]);
+            console.log(["File change new file: ", vl]);
             let inform = false;
-            let isFile = (vl.value[vl.value.length - 1] === "{");
+            let isFile = (vl.value[vl.value.length - 1] !== "/");
             if (!this.props.isDir) {
                 if (isFile) {
                     inform = true;
                 } else {
                     this.props.onFileChange(null);
+
                 }
             } else {
                 inform = true;
             }
             if (inform) {
-                this.props.onFileChange(vl.value.slice(0, vl.value.length -
-                                                       1));
+                console.log(["App File change new file: ", vl.value]);
+                this.props.onFileChange(vl.value);
             }
             this.setState({
                 value: vl.value
@@ -111,17 +127,16 @@ export class FileSelect extends Component {
 
     render() {
         return (
-            <div className="file-select">
-                <label>{this.props.header+":"}
-                    <Select.Async name="Database"
-                                  value={this.state.value}
-                                  loadOptions={this.getOptions}
-                                  onChange={this.onChange}
-                                  ignoreCase={false}
-                                  cache={false}
-                    />
-                </label>
-            </div>
+            <fieldSet className="file-select">
+                <legend>{this.props.header}</legend>
+                <Select.Async name="Database"
+                              value={this.state.value}
+                              loadOptions={this.getOptions}
+                              onChange={this.onChange}
+                              ignoreCase={false}
+                              autoload={true}
+                />
+            </fieldSet>
         );
     }
 }

@@ -136,7 +136,7 @@ export class CardGroup extends Component {
             height = d.cardHeight + (d.groupStroke * 2) + (
                 (this.props.max - 1) *d.groupVStep);
         } else {
-            height = d.cardHeight + 4;
+            height = d.cardHeight + (d.groupStroke * 2);
             width = d.cardWidth + (d.groupStroke * 2) + (
                 (this.props.max - 1) * d.groupHStep);
         }

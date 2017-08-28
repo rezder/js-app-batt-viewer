@@ -6,28 +6,32 @@ import {
     Shade,
     Spinner,
     Pattern,
-    MiddleLine
+    MiddleLine,
 } from './compsvg.js';
 import {
     Cone,
     Name,
     Deck,
-    Player
+    Player,
+    ButtonPanel
 } from './battcompsvg.js';
 import * as dPos from './dpos.js';
 import * as dCard from './dcard.js';
 import * as mv from './moves.js';
+import * as dMoveType from './dmovetype.js';
 
 export const VIEW_God = 3;
 export const VIEW_Watch = 2;
 export const VIEW_Player0 = 0;
 export const VIEW_Player1 = 1;
+export const NONE_Player=2
 
 export class BattSvg extends Component {
     constructor(props) {
         super(props);
         this.clickHandler = this.clickHandler.bind(this);
         this.missHandler = this.missHandler.bind(this);
+        this.buttonHandler=this.buttonHandler.bind(this);
         this.state = this.calcInitState(props);
     }
     static defaultProps = {
@@ -40,9 +44,10 @@ export class BattSvg extends Component {
         groupVStep: 20,
         noPlayerHandTroops: [0, 0],
         noPlayerHandTacs: [0, 0],
-        scoutReturnPlayer: [2], // 2 is none
+        scoutReturnPlayer: [NONE_Player],
         scoutReturn1Card: 0,
-        scoutReturn2Card: 0
+        scoutReturn2Card: 0,
+        winner: NONE_Player
     };
     static propTypes = {
         cardHeight: PropTypes.number.isRequired,
@@ -55,7 +60,9 @@ export class BattSvg extends Component {
         cardPos: PropTypes.array.isRequired,
         conePos: PropTypes.array.isRequired,
         lastMover: PropTypes.number.isRequired,
+        lastMoveType: PropTypes.number.isRequired,
         moves: PropTypes.array,
+        winner: PropTypes.number.isRequired,
         view: PropTypes.number.isRequired, // VIEV_
         isNew: PropTypes.bool.isRequired, // if false it asumes a move have caused the change to positions
         noPlayerHandTroops: PropTypes.array.isRequired,
@@ -69,10 +76,19 @@ export class BattSvg extends Component {
 
     clickHandler(p) {
         console.log(p.pointer);
-        console.log(pp(p.e, this.svg));
+        console.log(pp(p.e, this.svg));//TODO select card, move cone and create card move.
+        // create cone move is outside, that is a problem as parent can only listent for change.
+        // we a listenter or button inside the svg.//Maybe make all move button inside and
+        // only display them when move handler is present. Pass active when move is pressent,
+        //Give-Up when mover and have moves and pause always(when handler present).
+        //shade disable every thing
     }
     missHandler(e) {
         console.log(pp(e, this.svg));
+    }
+    buttonHandler(text){
+        console.log(text)
+        //TODO buttom handler
     }
     /**
      *componentWillReceiveProps updates state when props change.
@@ -85,47 +101,47 @@ export class BattSvg extends Component {
             nextProps.conePos !== this.props.conePos ||
             nextProps.cardPos !== this.props.cardPos
         ){
-        let props=this.props;
-        let prevState=this.state
-        let upd = {};
-        if (nextProps.isNew) {
-            upd = this.calcInitState(nextProps);
-        } else {
-            upd.isSending = false;
-            upd.handCardPointer = null;
-            upd.flagCardPointer = null;
-            if (!prevState.conePos.every((v, i) => v ===
-                nextProps.conePos[i])) {
-                upd.conePos = nextProps.conePos;
+            let props=this.props;
+            let prevState=this.state
+            let upd = {};
+            if (nextProps.isNew) {
+                upd = this.calcInitState(nextProps);
             } else {
-                let cardDiffs = diffCardPos(props.cardPos,
-                                            nextProps.cardPos);
-                if (cardDiffs.length > 0) {
-                    upd.markedPointers = [];
-                    upd.posCards = [];
-                    for (let cards of prevState.posCards) {
-                        upd.posCards.push(cards);
-                    }
-                    for (let diff of cardDiffs) {
-                        upd.markedPointers.push(diff.pointer);
-                        let addList = upd.posCards[diff.pointer
-                                                       .pos];
-                        upd.posCards[diff.pointer.pos] =
-                            addList.concat(
-                                [diff.pointer.ix]);
-
-                        let removeList = upd.posCards[diff.oldPos];
-                        let updList = [];
-                        for (let cardix of removeList) {
-                            if (cardix !== diff.pointer.ix) {
-                                updList.push(cardix);
-                            }
+                upd.isSending = false;
+                upd.handCardPointer = null;
+                upd.flagCardPointer = null;
+                if (!prevState.conePos.every((v, i) => v ===
+                    nextProps.conePos[i])) {
+                    upd.conePos = nextProps.conePos;
+                } else {
+                    let cardDiffs = diffCardPos(props.cardPos,
+                                                nextProps.cardPos);
+                    if (cardDiffs.length > 0) {
+                        upd.markedPointers = [];
+                        upd.posCards = [];
+                        for (let cards of prevState.posCards) {
+                            upd.posCards.push(cards);
                         }
-                        upd.posCards[diff.oldPos] = updList;
+                        for (let diff of cardDiffs) {
+                            upd.markedPointers.push(diff.pointer);
+                            let addList = upd.posCards[diff.pointer
+                                                           .pos];
+                            upd.posCards[diff.pointer.pos] =
+                                addList.concat(
+                                    [diff.pointer.ix]);
+
+                            let removeList = upd.posCards[diff.oldPos];
+                            let updList = [];
+                            for (let cardix of removeList) {
+                                if (cardix !== diff.pointer.ix) {
+                                    updList.push(cardix);
+                                }
+                            }
+                            upd.posCards[diff.oldPos] = updList;
+                        }
                     }
                 }
             }
-        }
             this.setState(upd);
         }
 
@@ -171,19 +187,19 @@ export class BattSvg extends Component {
         let design = this.createDesign();
         let view = this.props.view;
         let moves = this.props.moves;
+        let winner=this.props.winner;
         let lastMover = this.props.lastMover;
+        let lastMoveType=this.props.lastMoveType;
         let names = this.props.names;
         let noPlayerHandTroops = this.props.noPlayerHandTroops;
         let noPlayerHandTacs = this.props.noPlayerHandTacs;
 
         let handler = null;
+        let buttonHandler =null;
 
         if ((view === VIEW_Player1) || (view === VIEW_Player0)) {
             handler = this.clickHandler;
-        }
-        let viewix = [0, 1];
-        if (view === VIEW_Player1) {
-            viewix = [1, 0];
+            buttonHandler= this.buttonHandler
         }
 
         let mover = mv.mover(moves);
@@ -220,10 +236,10 @@ export class BattSvg extends Component {
                 <Pattern />
                 <g id ="layer1">
                     <g transform={"translate("+nameX+","+nameY+")"} >
-                        {createName(viewix[1],moves,lastMover,names)}
+                        {createName(topPlayer(view),moves,lastMover,names)}
                     </g>
                     <g transform={"translate("+nameX+","+(design.height - nameY)+")"} >
-                        {createName(viewix[0],moves,lastMover,names)}
+                        {createName(opp(topPlayer(view)),moves,lastMover,names)}
                     </g>
                     <MiddleLine height={design.height} width={design.width}/>
                     {conesCreate(this.state.conePos,
@@ -260,7 +276,7 @@ export class BattSvg extends Component {
                                       noPlayerHandTacs,
                                       noPlayerHandTroops,
                                       true,
-                                      viewix[1],
+                                      topPlayer(view),
                                       handler,
                                       design)}
                     </g>
@@ -272,12 +288,13 @@ export class BattSvg extends Component {
                                       noPlayerHandTacs,
                                       noPlayerHandTroops,
                                       false,
-                                      viewix[0],
+                                      opp(topPlayer(view)),
                                       handler,
                                       design)}
                     </g>
+                    {createButtonPanel(buttonHandler,winner,view,lastMoveType,moves,design)}
                     {createSpinner(this.state.isSending,this.state.spinnerX,this.state.spinnerY)}
-                    {createShade(view,moves,design.height,design.width)}
+                    {createShade(winner,lastMoveType,design.height,design.width)}
                 </g>
             </svg>
         );
@@ -309,6 +326,36 @@ function pp(event, svg) {
     point = point.matrixTransform(svg.getScreenCTM()
                                      .inverse());
     return point;
+}
+
+function createButtonPanel(handler,winner,view,lastMoveType,moves,design){
+    let viewPlayer=NONE_Player
+    let isViewPlayer=false
+    if (view===VIEW_Player0||view===VIEW_Player1){
+        isViewPlayer=true
+        viewPlayer=view
+    }
+
+    let handy = design.height / 2 - 2 * design.space - 2 * design.groupStroke -
+                design.cardHeight;
+    let y=handy + design.height/2
+    let handx = (design.width - 8 * design.groupHStep - 2 * design.groupStroke -
+                 design.cardWidth) / 2;
+    let handWidth = design.cardWidth + (design.groupStroke * 2) + (
+        8 * design.groupHStep);
+    let x=handx + handWidth + design.space*2
+    return (
+        <g transform={"translate("+x+","+y+")"}>
+            <ButtonPanel
+                handler={handler}
+                isWinner={winner!==NONE_Player}
+                isGiveUp={lastMoveType===dMoveType.GiveUp}
+                isViewPlayer={isViewPlayer}
+                viewPlayer={viewPlayer}
+                moves={moves}
+            />
+        </g>
+    )
 }
 
 function createDeck(posCards, pos,noHiddens, svgHandler, design, isScoutMove, isDeckMove) {
@@ -443,6 +490,7 @@ function conesCreate(conePos, mover, moves, view, svgHandler, design) {
                   height={design.height}
                   diff={diff}
                   size={size}
+                  topPlayer={topPlayer(view)}
             />
         );
     }
@@ -458,8 +506,9 @@ function createSpinner(isSending, spinnerX, spinnerY) {
     );
 }
 
-function createShade(view, moves, height, width) {
-    let on = ((view !== VIEW_God) && (!moves)); //moves must not be empty or this check will fail.
+function createShade(winner,lastMoveType, height, width) {
+    let on = (winner!==NONE_Player)|| lastMoveType===dMoveType.GiveUp
+    console.log(["Sade on: ",on,"LastMoveType",lastMoveType])
     return (
         <Shade
             height={height}
@@ -467,4 +516,17 @@ function createShade(view, moves, height, width) {
             on={on}
         />
     );
+}
+function topPlayer(view){
+    if (view===VIEW_Player1){
+        return 0
+    }
+    return 1
+}
+function opp(player){
+    let opp = player + 1;
+    if (opp > 1) {
+        opp = 0;
+    }
+    return opp
 }

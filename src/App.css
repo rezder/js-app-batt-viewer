@@ -6,7 +6,8 @@ html{
     background-color:#eedfcc;
 }
 fieldset{
-    margin-bottom: 20px;
+    margin-bottom: 10px;
+    margin-top:10px;
 }
 .App-logo {
   animation: App-logo-spin infinite 30s linear;
@@ -41,33 +42,38 @@ td{text-align: left;}
 svg{
     border:5px solid #000000;
 }
-.game-viewer text{
-    padding: 5px;
-}
+
 .game-viewer label{
     padding: 5px;
 }
-.game-viewer fieldset{
-    margin-bottom: 0px;
+.game-viewer text{
+    margin-right: 10px;
+    margin-left: 10px;
+}
+.game-viewer button{
+    margin-top:10px;
+}
+.move-analyzer button{
+    margin: 10px;
 }
 #game-viewer-id{
     //max-width:616px;
 }
 input{
-    margin-right:5px;
-}
-.model-select label{
-    margin-left:5px;
+    margin-right:10px;
 }
 .model-select output{
-    margin-left:5px;
+    margin-left:10px;
 }
 #move-analyzer-id{
     padding-left:10px;
     float:right;
+    margin-top:0;
+
 }
 .Select-control{
     background-color:#fffaf0;
+    text-align:left;
 }
 svg text {
     cursor: default;
@@ -78,4 +84,16 @@ svg text {
 }
 svg text::selection {
     background: none;
+}
+.Select-menu-outer {
+    z-index: 3;
+}
+.file-select {
+    z-index: 3;
+}
+.svg-button-background {
+    fill: #faebd7
+}
+.svg-button-foreground {
+    fill: #000000
 }

@@ -7,7 +7,8 @@ import {
     VIEW_God,
     VIEW_Watch,
     VIEW_Player0,
-    VIEW_Player1
+    VIEW_Player1,
+    NONE_Player
 } from './battsvg.js';
 import * as dPos from './dpos.js';
 import * as dCard from './dcard.js';
@@ -18,13 +19,13 @@ export class GameViewer extends Component {
         this.handleCheckBox = this.handleCheckBox.bind(this);
         this.state = initializeState(props);
     }
-    static propTypes={
-        poss: PropTypes.array,//Battleline game positions
+    static propTypes = {
+        poss: PropTypes.array, //Battleline game positions
         playerIDs: PropTypes.arrayOf(PropTypes.number),
         handleRow: PropTypes.func
 
     }
-    componentWillReceiveProps(nextProps, undef) {
+    componentWillReceiveProps(nextProps) {
         if (nextProps.poss !== this.props.poss) {
             let initState = initializeState(nextProps);
             delete initState.view;
@@ -88,11 +89,11 @@ export class GameViewer extends Component {
     render() {
         let posView = null;
         if (this.props.poss) {
-            posView = calcPosView(this.props.poss[this.state.row], this
+            posView =CalcPosView(this.props.poss[this.state.row], this
                 .state
                 .view);
         } else {
-            posView = calcPosView(defaultPos(), this.state.view);
+            posView = CalcPosView(defaultPos(), this.state.view);
         }
         let names = ["0", "1"];
         if (this.props.playerIDs) {
@@ -105,13 +106,14 @@ export class GameViewer extends Component {
                     cardPos={posView.CardPos}
                     conePos={posView.ConePos}
                     lastMover={posView.LastMover}
+                    lastMoveType={posView.LastMoveType}
                     moves={posView.Moves}
+                    winner={posView.Winner}
                     view={posView.View}
                     noPlayerHandTroops={posView.NoTroops}
                     noPlayerHandTacs={posView.NoTacs}
                     scoutReturnPlayer={posView.PlayerReturned}
-                    scoutReturn1Card={posView.FirstCardReturned}
-                    scoutReturn2Card={posView.SecondCardReturned}
+                    scoutReturnCards={posView.CardsReturned}
                     names={names}
                     isNew={this.state.isNew}
                 />
@@ -142,19 +144,19 @@ export class GameViewer extends Component {
 }
 
 /**
- * calcPosView calculate the view of a battleline game position.
+ * CalcPosView calculate the view of a battleline game position.
  * @param {[pos]} pos: The game position.
  * @param {number} view: The view VIEW_
  * @returns {} The position view.
  * @throws {} Error if view does not exist.
  */
-function calcPosView(pos, view) {
+export function CalcPosView(pos, view) {
     let posView = null;
     switch (view) {
         case VIEW_God:
-            posView = calcPosView_God(pos);
+            posView = pos;
             break;
-        case VIEW_Watch: //TODO
+        case VIEW_Watch:
             posView = calcPosView_Watch(pos);
             break;
         case VIEW_Player0:
@@ -181,11 +183,12 @@ function calcPosView_God(pos) {
     posView.LastMover = pos.LastMover;
     posView.LastMoveType = pos.LastMoveType;
     posView.View = VIEW_God;
-    posView.NoTroops = [0, 0];
-    posView.NoTacs = [0, 0];
+    posView.NoTroops = pos.NoTroops;
+    posView.NoTacs = pos.NoTacs;
     posView.PlayerReturned = pos.PlayerReturned;
-    posView.FirstCardReturned = pos.FirstCardReturned;
-    posView.SecondCardReturned = pos.SecondCardReturned;
+    posView.CardsReturned = pos.CardsReturned;
+    posView.Winner = pos.Winner;
+    posView.Moves = pos.Moves
     return posView;
 }
 
@@ -206,9 +209,9 @@ function calcPosView_Player(pos, view) {
     posView.NoTroops = diff.noTroops;
     posView.NoTacs = diff.noTacs;
     posView.PlayerReturned = pos.PlayerReturned;
-    posView.FirstCardReturned = diff.firstCard;
-    posView.SecondCardReturned = diff.secondCard;
+    posView.CardsReturned = [diff.firstCard, diff.secondCard];
     posView.Moves = pos.Moves;
+    posView.Winner = pos.Winner;
     return posView;
 }
 
@@ -242,7 +245,7 @@ function calcPosView_Watch(pos) {
         } else {
             cardPos[cardix] = pos.CardPos[cardix];
         }
-        if (pos.FirstCardReturned === cardix || pos.SecondCardReturned ===
+        if (pos.CardsReturned[0] === cardix || pos.CardsReturned[1] ===
             cardix) {
             if (pos.CardPos[cardix] === dPos.card.DeckTroop) {
                 if (firstCard === cardix) {
@@ -273,9 +276,9 @@ function calcPosView_Watch(pos) {
     posView.NoTroops = noTroops;
     posView.NoTacs = noTacs;
     posView.PlayerReturned = pos.PlayerReturned;
-    posView.FirstCardReturned = firstCard;
-    posView.SecondCardReturned = secondCard;
+    posView.CardsReturned = [firstCard, secondCard];
     posView.Moves = pos.Moves;
+    posView.Winner = pos.Winner;
     return posView;
 
 }
@@ -291,15 +294,15 @@ function calcPosViewPlayer(pos, player) {
     let cardPos = [0];
     let noTroops = [0, 0];
     let noTacs = [0, 0];
-    let firstCard = pos.FirstCardReturned;
-    let secondCard = pos.SecondCardReturned;
+    let firstCard = pos.CardsReturned[0];
+    let secondCard = pos.CardsReturned[1];
     let opp = player + 1;
     if (opp > 1) {
         opp = 0;
     }
     for (let cardix = 1; cardix < pos.CardPos.length; cardix++) {
-        let isReturned = (pos.FirstCardReturned === cardix || pos.SecondCardReturned ===
-                          cardix);
+        let isReturned = (pos.CardsReturned[0] === cardix || pos.CardsReturned[1] ===
+            cardix);
         if (pos.CardPos[cardix] === dPos.card.Players[opp].Hand) {
             if (!isReturned || (isReturned && pos.PlayerReturned === opp)) {
                 if (dCard.isTroop(cardix)) {
@@ -335,7 +338,7 @@ function calcPosViewPlayer(pos, player) {
                     } else {
                         secondCard = dCard.BACKTac;
                     }
-                } else if (pos.CardPos[cardix] !== dPos.card.Player[player].Hand) {
+                } else if (pos.CardPos[cardix] !== dPos.card.Players[player].Hand) {
                     if (firstCard === cardix) {
                         firstCard = 0;
                     } else {
@@ -396,9 +399,10 @@ function defaultPos() {
         ConePos: conePos,
         LastMover: lastMover,
         LastMoveType: lastMoveType,
-        PlayerReturned: 2,
-        FirstCardReturned: 0,
-        SecondCardReturned: 0,
-        Moves: moves
+        PlayerReturned: NONE_Player,
+        CardsReturned: [0,0],
+        Moves: moves,
+        Winner:NONE_Player,
+        View:VIEW_God
     };
 }

@@ -14,7 +14,8 @@ import {
     GameViewer
 } from './gameviewer.js'
 import {
-    MoveAnalyzer
+    MoveAnalyzer,
+    CalcMoverView
 } from './moveanalyzer.js'
 
 import * as dPos from './dpos.js';
@@ -30,27 +31,67 @@ class App extends Component {
             noGames: 0,
             gamePoss: null,
             gamePlayerIDs: null,
-            posMoves: null
+            gamePos: null
 
         }
     }
     handlePos(posix) {
         let pos = this.state.gamePoss[posix];
+        if (pos){
+            pos=CalcMoverView(pos)
+        }
         this.setState({
-            posMoves: pos.Moves
+            gamePos: pos
         })
     }
     handleGame(game) {
-        //TODO loadGame Pos
-        let gamePoss = gameViewerTestDataPos();
-        let gamePlayerIDs = game.PlayerIDs;
-        let moves = gamePoss[0].Moves;
-        this.setState({
-            gamePoss: gamePoss,
-            gamePlayerIDs: gamePlayerIDs,
-            posMoves: moves
-        });
-        console.log(['Game changed new', game, moves]);
+
+        if (game){
+            let http = new XMLHttpRequest();
+            let url = "games/";
+            let params = "file=" + this.state.dbFile+"&player0id="+game.PlayerIDs[0]+"&player1id="+game.PlayerIDs[1]+"&ts="+encodeURIComponent(game.Time);
+            http.open("POST", url, true);
+            http.setRequestHeader("Content-type",
+                                  "application/x-www-form-urlencoded");
+            let batt=this
+            http.onreadystatechange = function() {
+                if (http.readyState === 4 && http.status === 200) {
+                    console.log(["handleGame Recieve: ",http.responseText])
+                    let gamePoss = JSON.parse(http.responseText);
+                    let gamePlayerIDs = game.PlayerIDs;
+                    let gamePos = gamePoss[0];
+                    batt.setState({
+                        gamePoss: gamePoss,
+                        gamePlayerIDs: gamePlayerIDs,
+                        gamePos: gamePos
+                    });
+                }
+            };
+            http.send(params);
+            console.log(["handleGame Url: ",url,"Params: ",params])
+        }else{
+            let state={
+                gamePoss: null,
+                gamePlayerIDs:null,
+                gamePos:null
+            }
+            this.setState(state)
+        }
+
+        //TODO remove test ex. gamePoss
+
+        //let gamePoss = gameViewerTestDataPos();
+        //let gamePlayerIDs = game.PlayerIDs;
+        //let gamePos = gamePoss[0];
+        //if (gamePos){
+         //   gamePos=CalcMoverView(gamePos)
+        //}
+        //this.setState({
+         //   gamePoss: gamePoss,
+          //  gamePlayerIDs: gamePlayerIDs,
+        //    gamePos: gamePos
+       // });
+       // console.log(['Game changed new', game, gamePos]);
     }
     moveHandler(moveix) {}
     onDbFileChange(file) {
@@ -59,25 +100,27 @@ class App extends Component {
         });
         if (file) {
             let http = new XMLHttpRequest();
-            let url = "localhost:9021/games/";
-            // let params = "file=" + file + "&no-games=&start-id=";
+            let url = "games/";
+            let params = "file=" + file;
             http.open("POST", url, true);
             http.setRequestHeader("Content-type",
-                "application/x-www-form-urlencoded");
-
+                                  "application/x-www-form-urlencoded");
+            let batt=this
             http.onreadystatechange = function() {
                 if (http.readyState === 4 && http.status === 200) {
-                    let noGames = JSON.parse(http.responseText);
-                    this.setState({
+                    console.log(["onDbFileChange Recieve: ",http.responseText])
+                    let noGames = JSON.parse(http.responseText).NoGames;
+                    batt.setState({
                         noGames: noGames
                     });
                 }
             }
-            //TODO remove
-            this.setState({
-                noGames: 2
-            });
-            // http.send(params);
+            http.send(params);
+            console.log(["onDbFileChange Url: ",url,"Params: ",params])
+            //TODO remove test noGames
+            //this.setState({
+              //  noGames: 2
+            //});
         } else {
             this.setState({
                 noGames: 0
@@ -86,7 +129,7 @@ class App extends Component {
     }
 
     render() {
-        console.log(["Render App state pos moves: ", this.state.posMoves])
+        console.log(["Render App state game pos: ", this.state.gamePos])
         let cardPos = []
         for (let i = 0; i < 61; i++) {
             cardPos[i] = dPos.card.DeckTroop
@@ -101,17 +144,14 @@ class App extends Component {
                     <img src={logo} className="App-logo" alt="logo" />
                     <h2>Battleline Game Viewer</h2>
                 </div>
-                <fieldSet>
-                    <legend>Select Database</legend>
-                    <FileSelect
-                        header="Database File"
-                        value={this.state.dbFile}
-                        onFileChange={this.onDbFileChange}
-                        isDir={false}
-                        suffix=""
-                        preFix="/home/rho/"
-                    />
-                </fieldSet>
+                <FileSelect
+                    header="Select Database"
+                    value={this.state.dbFile}
+                    onFileChange={this.onDbFileChange}
+                    isDir={false}
+                    suffix=""
+                    preFix="/home/rho/"
+                />
                 <fieldset>
                     <legend>Select Game</legend>
                     <GameSelect
@@ -123,7 +163,7 @@ class App extends Component {
                 <fieldset id="move-analyzer-id">
                     <legend>Move Analyzer</legend>
                     <MoveAnalyzer playerIDs={this.state.gamePlayerIDs}
-                                  posMoves={this.state.posMoves}
+                                  gamePos={this.state.gamePos}
                     />
                 </fieldset>
 
@@ -163,23 +203,25 @@ function gameViewerTestDataPos() {
         cardPos[i + 10] = dPos.card.Players[1].Hand
         hands[1].push(i + 10);
     }
-    let conePos = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    let conePos = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
     let lastMover = 0;
     let lastMoveType = 0;
     let playerReturned = 2;
-    let firstCardReturned = 0;
-    let secondCardReturned = 0;
-    let mover = 1
-    let moves = gameViewerTestDataMoveHand(mover, hands[mover])
+    let cardsReturned =[0,0];
+    let mover = 1;
+    let winner= 2;//NONE_Player
+    let view=3;//VIEW_God
+    let moves = gameViewerTestDataMoveHand(mover, hands[mover]);
     poss.push({
         CardPos: cardPos,
         ConePos: conePos,
         LastMover: lastMover,
         LastMoveType: lastMoveType,
         PlayerReturned: playerReturned,
-        FirstCardReturned: firstCardReturned,
-        SecondCardReturned: secondCardReturned,
-        Moves: moves
+        CardsReturned:cardsReturned,
+        Moves: moves,
+        Winner: winner,
+        View: view,
     });
     let move = moves[0].Moves[0];
     let newCardPos = []
@@ -196,9 +238,10 @@ function gameViewerTestDataPos() {
         LastMover: lastMover,
         LastMoveType: lastMoveType,
         PlayerReturned: playerReturned,
-        FirstCardReturned: firstCardReturned,
-        SecondCardReturned: firstCardReturned,
-        Moves: moves
+        CardsReturned:cardsReturned,
+        Moves: moves,
+        Winner:winner,
+        View: view,
     });
 
     return poss;

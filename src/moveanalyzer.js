@@ -14,6 +14,9 @@ import {
 import * as dPos from './dpos.js';
 import * as dCard from './dcard.js';
 import * as dMoveType from './dmovetype.js';
+import {
+    CalcPosView
+} from './gameviewer.js'
 
 export class MoveAnalyzer extends Component {
     constructor(props) {
@@ -22,94 +25,111 @@ export class MoveAnalyzer extends Component {
         this.handleCalc = this.handleCalc.bind(this);
         this.state = {
             isCalc: false,
-            stdOutFile: null
+            probs:null,
+            modelDir:null
         };
     }
     static propTypes = {
         playerIDs: PropTypes.arrayOf(PropTypes.number),
-        posMoves: PropTypes.array //Possible moves for a player
+        gamePos: PropTypes.object // The movers view to be able to calculate the prob for moves
 
     }
     componentWillReceiveProps(nextProps) {
-        if (nextProps.posMoves !== this.props.posMoves) {
-            if (nextProps.posMoves) {
-                let moves = nextProps.posMoves;
-                let stdOutFile = this.state.stdOutFile;
-                let isCalc = checkCalc(stdOutFile, moves);
+        if (nextProps.gamePos !== this.props.gamePos) {
+            if (nextProps.gamePos.Moves) {
+                let moves = nextProps.gamePos.Moves;
+                let isCalc = checkCalc(moves,this.state.modelDir);
                 this.setState({
-                    isCalc: isCalc
+                    isCalc: isCalc,
+                    probs:null
                 });
             }
         }
     }
     handleLoad(modelDir) {
-        this.setState({
-            modelDir: modelDir
-        });
         let http = new XMLHttpRequest();
-        let url = "localhost:9021/model/";
-        // let params = "model=" + modelDir;
+        let url = "model/";
+        let params = "model=" + modelDir;
         http.open("POST", url, true);
         http.setRequestHeader("Content-type",
-            "application/x-www-form-urlencoded");
-
+                              "application/x-www-form-urlencoded");
+        let moveAnalyzer=this
+        let newDir =modelDir
         http.onreadystatechange = function() {
             if (http.readyState === 4 && http.status === 200) {
-                let file = JSON.parse(http.responseText);
-                let moves = this.props.posMoves;
-                let isCalc = checkCalc(file, moves);
-                this.setState({
-                    stdOutFile: file,
-                    isCalc: isCalc
+                console.log(["handleLoad Recieve: ",http.responseText])
+                let isCalc=false
+                if (moveAnalyzer.props.gamePos){
+                    let moves = moveAnalyzer.props.gamePos.Moves;
+                    isCalc = checkCalc(moves,newDir);
+                }
+                moveAnalyzer.setState({
+                    isCalc: isCalc,
+                    modelDir: newDir
                 });
 
             }
         };
-        //http.send(parms);
-        this.state = { //TODO remove
-            isCalc: true,
-            stdOutFile: "test.file"
-        };
+        http.send(params);
+        console.log(["handleLoad Url: ",url,"Params: ",params])
+        //TODO remove ex. monitor
+        /// let isCalc=false
+        //   if(this.props.gamePos){
+        //       isCalc=true
+        //  }
+        //  this.state = {
+        //     isCalc: isCalc,
+        // };
+
     }
     handleCalc() {
         let http = new XMLHttpRequest();
-        let url = "localhost:9021/model";
-        //let params = "model=" + this.state.modelDir+"&calc=true";
+        let url = "model/";
+        let jsonMoverView=encodeURIComponent(JSON.stringify(this.props.gamePos))
+        let params = "model=" + this.state.modelDir+"&mover-view="+jsonMoverView;
         http.open("POST", url, true);
         http.setRequestHeader("Content-type",
-            "application/x-www-form-urlencoded");
-
+                              "application/x-www-form-urlencoded");
+        let moveAnalyzer=this
         http.onreadystatechange = function() {
             if (http.readyState === 4 && http.status === 200) {
+                console.log(["handleCalc Recieve: ",http.responseText])
                 let probs = JSON.parse(http.responseText);
-                let moves = this.props.posMoves;
-                //this is not perfect but do not want to carry the calc id
+                let moves = moveAnalyzer.props.gamePos.Moves;
+                //this is not perfect but we do not want to carry the calc id
                 // model game and moveix
                 if ((probs) && (moves) && moves.length === probs.length) {
-                    this.setState({
+                    moveAnalyzer.setState({
                         probs: probs
                     });
                 }
             }
-            //http.send(parms);
-            //TODO remove
-            let probs = [];
-            let moves = this.props.posMoves;
-            for (let i = 0; i < moves.length; i++) {
-                probs.push(0.54333);
-            }
-            this.setState({
-                probs: probs
-            });
         };
+        http.send(params);
+        console.log(["handleCalc Url: ",url,"Params: ",params])
+        //TODO remove test ex. Probs
+        //let probs = [];
+        //let moves = this.props.gamePos.Moves;
+        //for (let i = 0; i < moves.length; i++) {
+        //   probs.push(0.54333);
+        //}
+        //console.log(["setting state probs:",probs])
+        //this.setState({
+        //   probs: probs
+        // });
     }
 
     render() {
+        let moves = null
+        if (this.props.gamePos) {
+            moves = this.props.gamePos.Moves
+        }
         return (
             <div className="move-analyzer">
                 <div>
                     <MoveViewer
-                        moves={this.props.posMoves}
+                        moves={moves}
+                        probs={this.state.probs}
                         playerIDs={this.props.playerIDs}
                     />
                     <button type="button"
@@ -119,7 +139,7 @@ export class MoveAnalyzer extends Component {
                     </button>
                 </div>
                 <ModelSelect handleLoad={this.handleLoad}/>
-                <FileMonitor stdOutFile={this.state.stdOutFile}/>
+                <StdMonitor modelDir={this.state.modelDir}/>
             </div>
 
         );
@@ -129,13 +149,13 @@ export class MoveAnalyzer extends Component {
 /**
  * checkCalc checks if the calculation button should be
  * active.
- * @param {string} file stdOutFile from tensorflow model.
  * @param {[move]} moves: possible moves.
  * @returns {bool} true if active.
  */
-function checkCalc(file, moves) {
+function checkCalc(moves,modelDir) {
     let isCalc = false;
-    if ((file) && (moves)) {
+    console.log(["check calc Moves:",moves])
+    if ((moves)&&(modelDir)) {
         if (moves[0].MoveType === dMoveType.Hand ||
             moves[0].MoveType === dMoveType.Scout1) {
             isCalc = true;
@@ -143,69 +163,80 @@ function checkCalc(file, moves) {
     }
     return isCalc;
 }
-class FileMonitor extends Component {
+class StdMonitor extends Component {
     constructor(props) {
         super(props);
         this.state = {
             timer: null,
-            content: null
+            content:""
         };
-        this.requestFile = this.requestFile.bind(this);
+        this.requestStd = this.requestStd.bind(this);
     }
     static propTypes = {
-        stdOutFile: PropTypes.string
+        modelDir: PropTypes.string
     }
     componentWillReceiveProps(nextProps) {
-        if (nextProps.stdOutFile !== this.props.stdOutFile) {
+        if (nextProps.modelDir !== this.props.modelDir) {
             if (this.state.timer) {
                 clearInterval(this.state.timer);
             }
             let timer = null;
-            if (nextProps.stdOutFile) {
-                this.requestFile();
-                timer = setInterval(this.requestFile, 5000);
+            if (nextProps.modelDir) {
+                this.requestStd(nextProps.modelDir);
+                timer = setInterval(this.requestStd, 5000);
             }
             this.setState({
                 timer: timer
             });
         }
     }
-    requestFile() {
+    requestStd(modelDir) {
         let http = new XMLHttpRequest();
-        let stdOutFile = this.props.stdOutFile;
-        let url = "localhost:9021/modelStOut/";
-        if (stdOutFile) {
-            //let params="file="+stdOutFile;
+        if (!modelDir){
+            modelDir=this.props.modelDir
+        }
+        let url = "model/";
+        if (modelDir) {
+            let params="model="+modelDir+"&std-out=true";
             http.open("Post", url, true);
+            console.log(["requestStd Recieve: ",http.responseText])
             http.setRequestHeader("Content-type",
-                "application/x-www-form-urlencoded");
-
+                                  "application/x-www-form-urlencoded");
+            let stdMonitor=this
             http.onreadystatechange = function() {
                 if (http.readyState === 4 && http.status === 200) {
-                    let text = JSON.parse(http.responseText);
-                    this.setState({
+                    console.log(["FileMonitor recive: ",http.responseText])
+                    let text = JSON.parse(http.responseText).StdOut;
+                    stdMonitor.setState({
                         content: text
                     });
                 }
             };
-            // http.send(params);
+            http.send(params);
+            console.log(["request std Url: ",url,"Params: ",params])
+
+        }else{
+            this.setState({
+                content: ""
+            });
         }
-        this.setState({
-            content: "Test data"
-        }); //TODO Remove
-        console.log("Request file");
+        //TODO remove test ex. stdout content
+        //this.setState({
+        //  content: "Test data"
+        //});
+        //console.log("Request file");
     }
 
     render() {
         return (
             <textarea
-                className="file-monitor"
+                className="std-monitor"
                 rows={15}
                 cols={80}
                 wrap="on"
                 readOnly={true}
-            >{this.state.content}
-            </textarea>
+                value={this.state.content}
+            />
         );
     }
 }
@@ -240,10 +271,11 @@ class ModelSelect extends Component {
         }
     }
     render() {
+        let isDisable=!this.state.selected
         return (
             <div className="model-select">
                 <FileSelect
-                    header="Model Directory"
+                    header="Select Model"
                     value={this.state.selected}
                     onFileChange={this.handleSelect}
                     isDir={true}
@@ -251,7 +283,7 @@ class ModelSelect extends Component {
                     preFix="/home/rho/"
                 />
                 <button type="button"
-                        disabled={(!this.state.selected)}
+                        disabled={isDisable}
                         onClick={this.handleLoad}
                 >Load</button>
                 <label>Loaded Model:
@@ -265,10 +297,12 @@ class ModelSelect extends Component {
 class MoveViewer extends Component {
     static proptybes = {
         moves: PropTypes.array,
-        playerIDs:PropTypes.arrayOf(PropTypes.number)
+        playerIDs: PropTypes.arrayOf(PropTypes.number)
     }
+
     render() {
-        let moves = this.props.moves;
+        let moves = this.props.moves
+
         let probs = this.props.probs;
         let ids = this.props.playerIDs;
         let data = [];
@@ -327,7 +361,7 @@ class MoveViewer extends Component {
                     cell={<TextCell
                               data={data}
                                    field="id"
-                          />}
+                    />}
                     width={125}
                 />
                 <Column
@@ -335,7 +369,7 @@ class MoveViewer extends Component {
                     cell={<TextCell
                               data={data}
                                    field="moveType"
-                          />}
+                    />}
                     width={125}
                 />
                 <Column
@@ -343,7 +377,7 @@ class MoveViewer extends Component {
                     cell={<TextCell
                               data={data}
                                    field="boardPiece"
-                          />}
+                    />}
                     width={125}
                 />
                 <Column
@@ -351,7 +385,7 @@ class MoveViewer extends Component {
                     cell={<TextCell
                               data={data}
                                    field="oldPos"
-                          />}
+                    />}
                     width={135}
                 />
                 <Column
@@ -359,7 +393,7 @@ class MoveViewer extends Component {
                     cell={<TextCell
                               data={data}
                                    field="newPos"
-                          />}
+                    />}
                     width={135}
                 />
                 <Column
@@ -367,7 +401,7 @@ class MoveViewer extends Component {
                     cell={<TextCell
                               data={data}
                                    field="prob"
-                          />}
+                    />}
                     width={125}
                 />
             </Table>
@@ -387,5 +421,17 @@ class TextCell extends React.Component {
                 {data[rowIndex][field]}
             </Cell>
         );
+    }
+}
+/**
+ * CalcMoverView calculate the movers view
+ * @param {PosView} godView the god view.
+ * @returns {PosView} mover view.
+ */
+export function CalcMoverView(godView) {
+    if (godView.Moves) {
+        return CalcPosView(godView, godView.Moves[0].Mover)
+    } else {
+        return godView
     }
 }
