@@ -74,7 +74,7 @@ export class Shade extends Component {
         let rectStyle = {
             strokeWidth: 0,
             fill: col,
-            fillOpacity: 0.5
+            fillOpacity: 0.3
         };
         if (on) {
             return (
@@ -191,7 +191,7 @@ export class Button extends Component {
             stroke: "none",
             fill: "url(#radialGradientButton)"
         }
-        if (handler){
+        if (handler&&!disabled){
             rectGlowStyle.cursor = "pointer";
         }
         let opacity=1
@@ -214,8 +214,7 @@ export class Button extends Component {
         }
         return (
             <g>
-                <defs
-                    id="defGradient">
+                <defs>
                     <radialGradient
                         cx="0.5"
                         cy="0.5"
@@ -247,7 +246,9 @@ export class Button extends Component {
                     width={width}
                     height={height}
                     ry={height/4}
-                    style={rectGlowStyle} />
+                    style={rectGlowStyle}
+                    onClick={this.clickHandler}
+                />
                 <text
                     x={width/2}
                     y={(height+fontSize/2)/2}

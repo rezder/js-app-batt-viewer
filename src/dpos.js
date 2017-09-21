@@ -19,6 +19,7 @@ card.Players[0].Hand = 21;
 card.Players[1].Hand = 22;
 card.DeckTac = 23;
 card.Size = 24;
+card.ScoutReturn=25;
 
 card.text = function(posix) {
     if ((posix === card.DeckTroop) || (posix === card.DeckTac)) {
@@ -51,13 +52,13 @@ cone.None = 0;
 cone.Player = [];
 cone.Player[0] = 1;
 cone.Player[1] = 2;
-cone.text=function (posix){
-    if (posix===cone.None){
+cone.text = function(posix) {
+    if (posix === cone.None) {
         return "None";
-    }else if((posix===cone.Player[0]&&posix===cone.Player[1])){
-        let txt="Player"+posix;
+    } else if ((posix === cone.Player[0] && posix === cone.Player[1])) {
+        let txt = "Player" + posix;
         return txt;
-    }else{
+    } else {
         return "No Cone postion found!";
     }
 };
@@ -75,6 +76,14 @@ export class Pointer {
         this.type = type;
         this.pos = pos;
         this.ix = ix;
+    }
+    isEqual(p) {
+        if (this.type === p.type &&
+            this.pos === p.pos &&
+            this.ix === p.ix) {
+            return true;
+        }
+        return false;
     }
     /**
      * Card creates a card pointer.
@@ -124,7 +133,7 @@ export function pointerToCardixs(pos, pointers) {
     if (pointers) {
         for (let i = 0; i < pointers.length; i++) {
             if (pointers[i].pos === pos) {
-                markedCardixs.push(pointers[i].Card);
+                markedCardixs.push(pointers[i].ix);
             }
         }
     }

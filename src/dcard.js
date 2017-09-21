@@ -8,8 +8,8 @@ export const TCScout = 64;
 export const TCRedeploy = 63;
 export const TCDeserter = 62;
 export const TCTraitor = 61;
-export const BACKTroop = 71;
-export const BACKTac = 72;
+export const BACKTroop = 72;
+export const BACKTac = 71;
 
 /**
  * flagSort sorts cards in to groups envs and troops.
@@ -71,7 +71,7 @@ export function isTac(cardix) {
     return ((cardix < 71) && (cardix > 60));
 }
 export function isTroop(cardix) {
-    return ((cardix > 0) || (cardix < 61));
+    return ((cardix > 0) && (cardix < 61));
 }
 export function isBack(cardix) {
     return ((cardix === BACKTac) || (cardix === BACKTroop));
@@ -87,7 +87,7 @@ export function text(cardix) {
         return tacName(cardix);
     } else if (isTroop(cardix)) {
         let txt = colorName(cardix);
-        txt = txt + troopStrenght(cardix);
+        txt = txt +" "+ troopStrenght(cardix);
         return txt;
     }
     return "Card not found!";

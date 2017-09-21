@@ -8,7 +8,8 @@ import {
     VIEW_Watch,
     VIEW_Player0,
     VIEW_Player1,
-    NONE_Player
+    NONE_Player,
+    DefaultViewPos
 } from './battsvg.js';
 import * as dPos from './dpos.js';
 import * as dCard from './dcard.js';
@@ -93,7 +94,7 @@ export class GameViewer extends Component {
                 .state
                 .view);
         } else {
-            posView = CalcPosView(defaultPos(), this.state.view);
+            posView = CalcPosView(DefaultViewPos(), this.state.view);
         }
         let names = ["0", "1"];
         if (this.props.playerIDs) {
@@ -182,6 +183,7 @@ function calcPosView_God(pos) {
     posView.ConePos = pos.ConePos;
     posView.LastMover = pos.LastMover;
     posView.LastMoveType = pos.LastMoveType;
+    posView.LastMoveIx = pos.LastMoveIx;
     posView.View = VIEW_God;
     posView.NoTroops = pos.NoTroops;
     posView.NoTacs = pos.NoTacs;
@@ -205,6 +207,7 @@ function calcPosView_Player(pos, view) {
     posView.ConePos = pos.ConePos;
     posView.LastMover = pos.LastMover;
     posView.LastMoveType = pos.LastMoveType;
+    posView.LastMoveIx = pos.LastMoveIx;
     posView.View = view;
     posView.NoTroops = diff.noTroops;
     posView.NoTacs = diff.noTacs;
@@ -272,6 +275,7 @@ function calcPosView_Watch(pos) {
     posView.ConePos = pos.ConePos;
     posView.LastMover = pos.LastMover;
     posView.LastMoveType = pos.LastMoveType;
+    posView.LastMoveIx = pos.LastMoveIx;
     posView.View = VIEW_Watch;
     posView.NoTroops = noTroops;
     posView.NoTacs = noTacs;
@@ -375,34 +379,4 @@ function initializeState(props) {
         isNew: true
     };
     return state;
-}
-/**
- * defaultPos setup the default game position,
- * to display something nice when no game have been
- * selected.
- * @returns {pos} The game postion.
- */
-function defaultPos() {
-    let cardPos = [];
-    for (let i = 0; i < 61; i++) {
-        cardPos[i] = dPos.card.DeckTroop;
-    }
-    for (let i = 0; i < 10; i++) {
-        cardPos[61 + i] = dPos.card.DeckTac;
-    }
-    let conePos = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-    let lastMover = 0;
-    let lastMoveType = 0;
-    let moves = null;
-    return {
-        CardPos: cardPos,
-        ConePos: conePos,
-        LastMover: lastMover,
-        LastMoveType: lastMoveType,
-        PlayerReturned: NONE_Player,
-        CardsReturned: [0,0],
-        Moves: moves,
-        Winner:NONE_Player,
-        View:VIEW_God
-    };
 }

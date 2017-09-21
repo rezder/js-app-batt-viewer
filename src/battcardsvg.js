@@ -117,12 +117,14 @@ export class CardGroup extends Component {
         };
         if ((handler) && (selectType === CLICK_Pos)) {
             borderStyle.cursor = "pointer";
+            borderStyle.pointerEvents="visible";//because of fill null if not sat only the frame is clickable
         }
         return (
             <rect
                 height={height}
                 width={width}
                 style={borderStyle}
+                onClick={this.handleClick}
             />
         );
     }

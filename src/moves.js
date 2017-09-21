@@ -1,4 +1,4 @@
-import * as dPos from './dpos.js';
+import * as dMoveType from './dmovetype.js';
 export const PT_Card = 0;
 export const PT_Cone = 1;
 
@@ -10,20 +10,24 @@ export const PT_Cone = 1;
  * @param {int} secondCardix : The card index to check on the second card of a move.
  * @param {function} f: the function to call if indexes match.
  */
-function loop(moves,firstCardix,secondCardix, f) {
-    if ((moves) && (moves.lenght > 0)) {
+function loop(moves, firstCardix, secondCardix, f) {
+    if ((moves) && (moves.length > 0)) {
         for (let i = 0; i < moves.length; i++) {
             let legalMove = moves[i];
-            let firstMove=legalMove.BoardMoves[0];
-            let secondMove=null;
-            if (firstMove.Index===firstCardix){
-                if (secondCardix>0){
-                    secondMove=legalMove.BoardMoves[1];
-                    if (firstMove.Index===firstCardix){
-                        f(legalMove,firstMove,secondMove);
+            if (legalMove.Moves) {
+                let firstMove = legalMove.Moves[0];
+                let secondMove = null;
+                if (firstMove.Index === firstCardix) {
+                    if (legalMove.Moves.length>1){
+                        secondMove = legalMove.Moves[1];
                     }
-                }else{
-                    f(legalMove, firstMove,secondMove);
+                    if (secondCardix > 0) {
+                        if (secondMove.Index === secondCardix) {
+                            f(legalMove, firstMove, secondMove);
+                        }
+                    } else {
+                        f(legalMove, firstMove, secondMove);
+                    }
                 }
             }
         }
@@ -37,9 +41,9 @@ function loop(moves,firstCardix,secondCardix, f) {
  * the first card of a move.
  * @returns {[int]}  unique new positions.
  */
-export function findPosOnFirst(moves,firstCardix) {
+export function findPosOnFirst(moves, firstCardix) {
     let posSet = new Set();
-    loop(moves,firstCardix,0,function(legalMove, firstMove,secondMove) {
+    loop(moves, firstCardix, 0, function(legalMove, firstMove, secondMove) {
         posSet.add(firstMove.NewPos);
     });
     return [...posSet];
@@ -52,9 +56,9 @@ export function findPosOnFirst(moves,firstCardix) {
  * the first card of a move.
  * @returns {[int]}  unique old positions.
  */
-export function findOldPosOnFirst(moves,firstCardix) {
+export function findOldPosOnFirst(moves, firstCardix) {
     let posSet = new Set();
-    loop(moves,firstCardix,0,function(legalMove, firstMove,secondMove) {
+    loop(moves, firstCardix, 0, function(legalMove, firstMove, secondMove) {
         posSet.add(firstMove.OldPos);
     });
     return [...posSet];
@@ -69,9 +73,10 @@ export function findOldPosOnFirst(moves,firstCardix) {
  * the second card of a move.
  * @returns {[int]}  unique new positions for the second card of a GameMove
  */
-export function findPosOnSecond(moves,firstCardix,secondCardix) {
+export function findPosOnSecond(moves, firstCardix, secondCardix) {
     let posSet = new Set();
-    loop(moves,firstCardix,secondCardix, function(legalMove, firstMove,secondMove) {
+    loop(moves, firstCardix, secondCardix, function(legalMove, firstMove,
+        secondMove) {
         posSet.add(secondMove.NewPos);
     });
     return [...posSet];
@@ -84,34 +89,44 @@ export function findPosOnSecond(moves,firstCardix,secondCardix) {
  * the first card of a move.
  * @returns {[int]}  unique old positions.
  */
-export function findOldPosOnSecond(moves,firstCardix) {
+export function findOldPosOnSecond(moves, firstCardix) {
     let posSet = new Set();
-    loop(moves,firstCardix,0,function(legalMove, firstMove,secondMove) {
+    loop(moves, firstCardix, 0, function(legalMove, firstMove, secondMove) {
         posSet.add(secondMove.OldPos);
     });
     return [...posSet];
 }
 
 /**
- * isDeck check if the moves are a deck move.
+ * isDeck check if the moves are a deck moves.
  * WARNING this does not include scout.
- * check if the first GameMove first BoardMove moves a card from a deck.
  * @param {[GameMoves]} moves
- * @returns {bool} : true if deck is changed in the moves.
+ * @returns {bool} : true if first move is a move type deck.
  */
-export function isDeck(moves){
-    if ((moves) && (moves.lenght > 0)) {
+export function isDeck(moves) {
+    if ((moves) && (moves.length > 0)) {
         let legalMove = moves[0];
-        if ((legalMove.BoardMoves) && (legalMove.BoardMoves.length > 0)) {
-            let firstMove=legalMove.BoardMoves[0];
-            if ((firstMove.PieceType === PT_Card)&&(
-                firstMove.OldPos === dPos.card.DeckTac || firstMove.OldPos===dPos.card.DeckTroop)){
+        if (legalMove.MoveType===dMoveType.Deck ) {
                 return true;
-            }
-       }
+        }
     }
     return false;
 }
+/**
+ * isScout23 check if the moves are scout 2 or scout 3
+ * @param {[GameMoves]} moves
+ * @returns {bool} : true if deck is changed in the moves.
+ */
+export function isScout23(moves) {
+    if ((moves) && (moves.length > 0)) {
+        let legalMove = moves[0];
+        if (legalMove.MoveType===dMoveType.Scout2||legalMove.MoveType===dMoveType.Scout3 ) {
+            return true;
+        }
+    }
+    return false;
+}
+
 /**
  * Check the first Move of moves to see if it is first BoardMove is a cone move.
  * @param {[GameMoves]} moves
@@ -119,59 +134,153 @@ export function isDeck(moves){
  */
 export function isCone(moves) {
     let res = false;
-    if ((moves) && (moves.lenght > 0)) {
+    if ((moves) && (moves.length > 0)) {
         let legalMove = moves[0];
-        if ((legalMove.BoardMoves) && (legalMove.BoardMoves.length > 0)) {
-            if (legalMove.BoardMoves[0].PieceType === PT_Cone) {
-                res=true;
-            }
+        if (legalMove.MoveType===dMoveType.Cone){
+            res=true;
         }
     }
     return res;
 }
 
-export function mover(moves){
-    if (moves){
+export function mover(moves) {
+    if (moves) {
         return moves[0].Mover;
-    }else{
+    } else {
         return 2;
     }
 }
-export function findMove(moves,move){
-    let ix=-1;
-    for (let i=0;i<moves.length;i++){
-        if (isMoveEqual(move,moves[i])){
+export function findMove(moves, move) {
+    let ix = -1;
+    for (let i = 0; i < moves.length; i++) {
+        if (isMoveEqual(move, moves[i])) {
             return ix;
         }
     }
     return ix;
 }
-function isMoveEqual(a,b){
-    if (a.Mover!==b.mover){
+
+function isMoveEqual(a, b) {
+    if (a.Mover !== b.mover) {
         return false;
     }
-    if (a.BoardMoves.length!==b.BoardMoves.length){
+    if (a.Moves.length !== b.Moves.length) {
         return false;
     }
-    for (let i=0;i<a.BoardMoves.length;i++){
-        if (!isPieceMoveEqual(a.BoardMoves[i],b.BoardMoves[i])){
+    for (let i = 0; i < a.Moves.length; i++) {
+        if (!isPieceMoveEqual(a.Moves[i], b.Moves[i])) {
             return false;
         }
     }
     return true;
 }
-function isPieceMoveEqual(a,b){
-    if(a.Type!==b.Type){
+
+function isPieceMoveEqual(a, b) {
+    if (a.Type !== b.Type) {
         return false;
     }
-    if(a.Index!==b.Index){
+    if (a.Index !== b.Index) {
         return false;
     }
-    if(a.NewPos!==b.NewPos){
+    if (a.NewPos !== b.NewPos) {
         return false;
     }
-    if(a.OldPOs!==b.OldPos){
+    if (a.OldPOs !== b.OldPos) {
         return false;
     }
     return true;
+}
+export function findMovePosOnFirst(cardix, cardPos, moves) {
+    let moveix = -1;
+    for (let i = 0; i < moves.length; i++) {
+        let move = moves[i];
+        if (move.Moves) {
+            let pbMove = move.Moves[0];
+            if (pbMove.Index === cardix && pbMove.NewPos === cardPos) {
+                moveix = i;
+                break;
+            }
+        }
+    }
+    return moveix;
+}
+export function findMoveOldPosOnSecond(firstCardix, cardPos, moves) {
+    let moveix = -1;
+    for (let i = 0; i < moves.length; i++) {
+        let move = moves[i];
+        if (move.Moves && move.Moves.length===2) {
+            let pbPos = move.Moves[1].OldPos;
+            let pbFirstix = move.Moves[0].Index;
+            if (pbFirstix === firstCardix && pbPos === cardPos) {
+                moveix = i;
+                break;
+            }
+        }
+    }
+    return moveix;
+}
+export function findMovePosOnSecond(firstCardix, secondCardix, cardPos, moves) {
+    let moveix = -1;
+    for (let i = 0; i < moves.length; i++) {
+        let move = moves[i];
+        if (move.Moves&& move.Moves.length===2) {
+            let pbPos = move.Moves[1].NewPos;
+            let pbFirstix = move.Moves[0].Index;
+            let pbSecondix = move.Moves[1].Index;
+            if (pbFirstix === firstCardix && pbSecondix === secondCardix &&
+                pbPos === cardPos) {
+                moveix = i;
+                break;
+            }
+        }
+    }
+    return moveix;
+}
+export function findMoveCone(coneixs, moves) {
+    let moveix = -1;
+    for (let i = 0; i < moves.length; i++) {
+        let move = moves[i];
+        if (!move.Moves) {
+            if (coneixs.length === 0) {
+                moveix = i;
+                break;
+            }
+        } else {
+            let pbMoves = move.Moves;
+            if (!pbMoves){
+                pbMoves=[];
+            }
+            if (pbMoves.length === coneixs.length) {
+                moveix = i;
+                for (let j = 0; j < pbMoves.length; j++) {
+                    if (pbMoves[j].Index !== coneixs[j]) {
+                        moveix = -1;
+                        break;
+                    }
+                }
+                if (moveix !== -1) {
+                    break;
+                }
+            }
+        }
+    }
+    return moveix;
+}
+export function findMoveScoutReturn2Cards(firstCardix, secondCardix, moves) {
+    let moveix = -1;
+    for (let i = 0; i < moves.length; i++) {
+        let move = moves[i];
+        if (move.Moves && move.Moves.length===2) {
+            let pbFirstix = move.Moves[0].Index;
+            let pbSecondix = move.Moves[1].Index;
+            if (pbFirstix === firstCardix && pbSecondix === secondCardix){
+                moveix=i;
+                break;
+            }
+        }
+    }
+    return moveix;
+}
+export function isScoutReturn(moves) {
+    return (moves[0].MoveType===dMoveType.ScoutReturn);
 }

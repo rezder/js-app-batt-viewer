@@ -84,7 +84,7 @@ class Flag extends Component {
         let troops = 4;
         let tacs = 2;
         let step = 2 * design.groupStroke + design.space + design.cardHeight +
-             (troops - 1) * design.groupVStep;
+              (troops - 1) * design.groupVStep;
         return (
             <g>
                 <CardGroup cardixs={sort.troops}
@@ -246,29 +246,25 @@ export class Player extends Component {
      *  }
      */
     anaMoves() {
-        let handler = this.props.handler;
         let handPointer = this.props.handCardPointer;
         let moves = this.props.moves;
         let flagPointer = this.props.flagCardPointer;
-        let isReverse = this.props.isReverse;
         let isMover = this.props.isMover;
-        let isOpp = this.props.isOpp;
 
         let handCardix = 0;
         if (handPointer) {
             handCardix = handPointer.ix;
         }
         let flagCardix = 0;
-        if (this.props.selectedFlagPointer) {
+        if (flagPointer) {
             flagCardix = flagPointer.ix;
         }
         let targetPoss = [];
         let selectType = CLICK_None;
 
-        if ((handler) && (handCardix > 0)) {
-            if (!isReverse && isMover) {
-                if (dCard.isTroop(handCardix) || dCard.isMorale(
-                    handCardix)) {
+        if (handCardix > 0) {
+            if (isMover) {
+                if (!dCard.isGuile(handCardix)) {
                     targetPoss = mv.findPosOnFirst(moves, handCardix);
                     selectType = CLICK_Pos;
                 } else if (handCardix === dCard.TCTraitor) {
@@ -288,8 +284,7 @@ export class Player extends Component {
                         selectType = CLICK_Cards;
                     }
                 }
-            }
-            if (isReverse && isOpp) {
+            }else{
                 if (handCardix === dCard.TCDeserter) {
                     targetPoss = mv.findOldPosOnSecond(moves,
                                                        handCardix, flagCardix);
@@ -449,20 +444,23 @@ export class ButtonPanel extends Component {
     static propTypes = {
         handler: PropTypes.func,
         isWinner: PropTypes.bool.isRequired,
-        isGveUp: PropTypes.bool.isRequired,
+        isStopped:PropTypes.bool.isRequired,
+        isGiveUp: PropTypes.bool.isRequired,
         isViewPlayer: PropTypes.bool.isRequired,
         viewPlayer: PropTypes.number.isRequired,
         moves: PropTypes.arrayOf(PropTypes.object)
     }
     render() {
-        let handler = this.props.handler
-        let isWinner = this.props.isWinner
-        let isGiveUp = this.props.isGiveUp
-        let isViewPlayer = this.props.isViewPlayer
-        let moves = this.props.moves
-        let viewPlayer = this.props.viewPlayer
-        if (!handler || isWinner || isGiveUp || !isViewPlayer) {
-          return (<g />);
+        let handler = this.props.handler;
+        let isWinner = this.props.isWinner;
+        let isGiveUp = this.props.isGiveUp;
+        let isStopped=this.props.isStopped;
+        let isViewPlayer = this.props.isViewPlayer;
+        let moves = this.props.moves;
+        let viewPlayer = this.props.viewPlayer;
+
+        if (!handler || isWinner||isStopped || isGiveUp || !isViewPlayer) {
+            return (<g />);
         }else {
             let isClaimDis = true
             let isPassDis = true
@@ -480,8 +478,8 @@ export class ButtonPanel extends Component {
                     }
                 }
             }
-            let space=5
-            let letterWidth=7.5
+            let space=8
+            let letterWidth=8
             let colWidth=letterWidth*6+space
             let rowHight=20+space
             return (
